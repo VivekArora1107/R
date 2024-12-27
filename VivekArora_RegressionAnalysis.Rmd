@@ -1,0 +1,62 @@
+---
+title: "VivekArora_RegressionAnalysis"
+output: word_document
+date: "2024-10-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+mortgage_data <- read.csv("Case Study Part VI Mortgage Repayment Dataset.csv")
+# Install necessary libraries (only needs to be done once)
+if (!require(pscl)) install.packages('pscl', dependencies=TRUE)
+# Load necessary libraries
+library(pscl)
+
+# Step 2: Data Cleaning and Imputation
+
+# Convert loan_status to a factor (1 for Fully Paid, 0 for Charged Off)
+mortgage_data$loan_status <- ifelse(mortgage_data$loan_status == "Fully Paid", 1, 0)
+
+# Clean 'term' to keep only the numeric value
+mortgage_data$term <- as.numeric(gsub(" months", "", mortgage_data$term))
+
+# Clean 'int_rate' to remove '%' and convert to numeric
+mortgage_data$int_rate <- as.numeric(gsub("%", "", mortgage_data$int_rate))
+
+# Convert 'emp_length' to numeric
+mortgage_data$emp_length <- gsub("10\\+ years", "10", mortgage_data$emp_length)
+mortgage_data$emp_length <- gsub("< 1 year", "0", mortgage_data$emp_length)
+mortgage_data$emp_length <- gsub(" years", "", mortgage_data$emp_length)
+mortgage_data$emp_length <- gsub(" year", "", mortgage_data$emp_length)
+mortgage_data$emp_length <- as.numeric(mortgage_data$emp_length)
+
+# Replace NA values with the mean for numeric columns
+
+# Impute mean for financial variables
+numeric_columns_mean <- c("loan_amnt", "term", "int_rate", "annual_inc", "dti")
+
+for (col in numeric_columns_mean) {
+  mortgage_data[[col]][is.na(mortgage_data[[col]])] <- mean(mortgage_data[[col]], na.rm = TRUE)
+}
+
+# Impute 0 for employment length
+mortgage_data$emp_length[is.na(mortgage_data$emp_length)] <- 0
+
+# Step 3: Build the Logistic Regression Model
+
+# Build the logistic regression model
+model <- glm(loan_status ~ loan_amnt + term + int_rate + emp_length + annual_inc + dti,
+             family = binomial(link = 'logit'), data = mortgage_data)
+
+# View the summary of the model
+summary(model)
+
+# Step 4: Evaluate the Model
+
+# Calculate McFadden's R-squared value
+pR2(model)
+
